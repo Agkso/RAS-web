@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { registerSchema, RegisterSchema } from './register_schema';
+import { registerSchema, RegisterSchema } from './registerSchema';
 
 type Errors = Record<string, string>;
 
