@@ -1,5 +1,4 @@
 💻 Front-end
-
 📁 Estrutura de Telas
 
 frontend/
