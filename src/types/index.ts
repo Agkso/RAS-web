@@ -2,7 +2,7 @@ export interface User {
   id: number;
   nome: string;
   email: string;
-  role: 'MORADOR' | 'AGENTE' | 'ADMIN';
+  role: string; // Mudança: agora é string simples
 }
 
 export interface LoginRequest {
@@ -22,7 +22,7 @@ export interface AuthResponse {
   id: number;
   nome: string;
   email: string;
-  role: 'MORADOR' | 'AGENTE' | 'ADMIN';
+  role: string; // Mudança: agora é string simples ao invés de array
 }
 
 export interface Denuncia {
