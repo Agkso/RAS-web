@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, MapMouseEvent, Marker } from '@vis.gl/react-google-maps';
 
 interface MapLocationSelectorProps {
   onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
@@ -51,15 +51,16 @@ const MapLocationSelector: React.FC<MapLocationSelectorProps> = ({
     }
   }, [onLocationSelect]);
 
-  const handleMapClick = useCallback((event: google.maps.MapMouseEvent) => {
-    if (event.latLng) {
-      const lat = event.latLng.lat();
-      const lng = event.latLng.lng();
+  const handleMapClick = (event: { detail: { latLng: google.maps.LatLngLiteral | null } }) => {
+    const latLng = event.detail.latLng;
+    if (latLng) {
+      const lat = latLng.lat;
+      const lng = latLng.lng;
       setSelectedLocation({ lat, lng });
       reverseGeocode(lat, lng);
     }
-  }, [reverseGeocode]);
-
+  };
+  
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (address.trim()) {
