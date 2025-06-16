@@ -6,7 +6,6 @@ import { ArrowLeft, MapPin } from 'lucide-react';
 import MapLocationSelector from '../components/MapLocationSelector';
 import ImageUploader from '../components/ImageUploader';
 
-// Configurações da API - em produção, estas devem vir de variáveis de ambiente
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'; // Substitua pela sua API Key
 const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY || 'YOUR_IMGBB_API_KEY'; // Substitua pela sua API Key do ImgBB
 
