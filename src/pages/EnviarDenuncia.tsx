@@ -2,17 +2,26 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { denunciaService } from '../services/denunciaService';
 import { DenunciaCriacao } from '../types';
-import { ArrowLeft, Upload, MapPin } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
+import MapLocationSelector from '../components/MapLocationSelector';
+import ImageUploader from '../components/ImageUploader';
+
+// Configurações da API - em produção, estas devem vir de variáveis de ambiente
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'; // Substitua pela sua API Key
+const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_API_KEY || 'YOUR_IMGBB_API_KEY'; // Substitua pela sua API Key do ImgBB
 
 const EnviarDenuncia: React.FC = () => {
   const [formData, setFormData] = useState<DenunciaCriacao>({
     descricao: '',
     localizacao: '',
+    latitude: undefined,
+    longitude: undefined,
     fotoUrl: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   
   const navigate = useNavigate();
 
@@ -20,6 +29,22 @@ const EnviarDenuncia: React.FC = () => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
+    setFormData({
+      ...formData,
+      localizacao: location.address,
+      latitude: location.lat,
+      longitude: location.lng,
+    });
+  };
+
+  const handleImageUpload = (imageUrl: string) => {
+    setFormData({
+      ...formData,
+      fotoUrl: imageUrl,
     });
   };
 
@@ -78,7 +103,7 @@ const EnviarDenuncia: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
@@ -116,10 +141,20 @@ const EnviarDenuncia: React.FC = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="localizacao" className="block text-sm font-medium text-gray-700">
-                    <MapPin className="w-4 h-4 inline mr-1" />
-                    Localização *
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="localizacao" className="block text-sm font-medium text-gray-700">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Localização *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowMap(!showMap)}
+                      className="text-sm text-blue-600 hover:text-blue-800 focus:outline-none"
+                    >
+                      {showMap ? 'Ocultar Mapa' : 'Selecionar no Mapa'}
+                    </button>
+                  </div>
+                  
                   <div className="mt-1">
                     <input
                       type="text"
@@ -132,30 +167,38 @@ const EnviarDenuncia: React.FC = () => {
                       onChange={handleChange}
                     />
                   </div>
+                  
+                  {showMap && (
+                    <div className="mt-4">
+                      <MapLocationSelector
+                        onLocationSelect={handleLocationSelect}
+                        apiKey={GOOGLE_MAPS_API_KEY}
+                        initialLocation={
+                          formData.latitude && formData.longitude
+                            ? { lat: formData.latitude, lng: formData.longitude }
+                            : undefined
+                        }
+                      />
+                    </div>
+                  )}
+                  
+                  {formData.latitude && formData.longitude && (
+                    <p className="mt-2 text-xs text-gray-500">
+                      Coordenadas: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                    </p>
+                  )}
+                  
                   <p className="mt-2 text-sm text-gray-500">
-                    Forneça o endereço completo ou uma referência clara do local.
+                    Forneça o endereço completo ou use o mapa para selecionar a localização precisa.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="fotoUrl" className="block text-sm font-medium text-gray-700">
-                    <Upload className="w-4 h-4 inline mr-1" />
-                    URL da Foto (Opcional)
-                  </label>
-                  <div className="mt-1">
-                    <input
-                      type="url"
-                      id="fotoUrl"
-                      name="fotoUrl"
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                      placeholder="https://exemplo.com/foto.jpg"
-                      value={formData.fotoUrl}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Se você tem uma foto do problema, cole aqui o link da imagem.
-                  </p>
+                  <ImageUploader
+                    onImageUpload={handleImageUpload}
+                    currentImageUrl={formData.fotoUrl}
+                    apiKey={IMGBB_API_KEY}
+                  />
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
@@ -170,6 +213,7 @@ const EnviarDenuncia: React.FC = () => {
                           <li>Você receberá atualizações sobre o status da sua denúncia</li>
                           <li>Todas as informações fornecidas são confidenciais</li>
                           <li>Denúncias falsas podem resultar em penalidades</li>
+                          <li>A localização precisa ajuda na resolução mais rápida do problema</li>
                         </ul>
                       </div>
                     </div>

@@ -1,11 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogOut, Plus, FileText, MapPin } from 'lucide-react';
+import { denunciaService } from '../services/denunciaService';
+import { Denuncia } from '../types';
 
 const DashboardMorador: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [minhasDenuncias, setMinhasDenuncias] = useState<Denuncia[]>([]);
+  const [loadingDenuncias, setLoadingDenuncias] = useState(true);
+  const [errorDenuncias, setErrorDenuncias] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMinhasDenuncias = async () => {
+      if (!user) {
+        setLoadingDenuncias(false);
+        return;
+      }
+      try {
+        setLoadingDenuncias(true);
+        const response = await denunciaService.listarMinhasDenuncias();
+        setMinhasDenuncias(response.content);
+      } catch (err) {
+        console.error('Erro ao buscar minhas denúncias:', err);
+        setErrorDenuncias('Erro ao carregar suas denúncias.');
+      } finally {
+        setLoadingDenuncias(false);
+      }
+    };
+
+    fetchMinhasDenuncias();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -115,17 +141,53 @@ const DashboardMorador: React.FC = () => {
               </p>
             </div>
             <div className="border-t border-gray-200">
-              <div className="px-4 py-5 sm:p-6">
-                <p className="text-gray-500 text-center">
-                  Nenhuma denúncia encontrada. 
-                  <button
-                    onClick={() => navigate('/enviar-denuncia')}
-                    className="text-blue-600 hover:text-blue-500 ml-1"
-                  >
-                    Envie sua primeira denúncia
-                  </button>
-                </p>
-              </div>
+              {loadingDenuncias ? (
+                <p className="p-6 text-center text-gray-500">Carregando denúncias...</p>
+              ) : errorDenuncias ? (
+                <p className="p-6 text-center text-red-500">{errorDenuncias}</p>
+              ) : minhasDenuncias.length === 0 ? (
+                <div className="px-4 py-5 sm:p-6">
+                  <p className="text-gray-500 text-center">
+                    Nenhuma denúncia encontrada. 
+                    <button
+                      onClick={() => navigate('/enviar-denuncia')}
+                      className="text-blue-600 hover:text-blue-500 ml-1"
+                    >
+                      Envie sua primeira denúncia
+                    </button>
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-200">
+                  {minhasDenuncias.map((denuncia) => (
+                    <li key={denuncia.id} className="px-4 py-4 sm:px-6">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-gray-900">
+                          {denuncia.descricao}
+                        </div>
+                        <div className="ml-2 flex-shrink-0 flex">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            {denuncia.status}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-2 sm:flex sm:justify-between">
+                        <div className="sm:flex">
+                          <p className="flex items-center text-sm text-gray-500">
+                            <MapPin className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
+                            {denuncia.localizacao}
+                          </p>
+                        </div>
+                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
+                          <time dateTime={denuncia.dataCriacao}>
+                            {new Date(denuncia.dataCriacao).toLocaleDateString()}
+                          </time>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </div>

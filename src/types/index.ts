@@ -40,6 +40,8 @@ export interface Denuncia {
 export interface DenunciaCriacao {
   descricao: string;
   localizacao: string;
+  latitude?: number;
+  longitude?: number;
   fotoUrl?: string;
 }
 
