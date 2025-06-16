@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { APIProvider, Map, MapMouseEvent, Marker } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
 
 interface MapLocationSelectorProps {
   onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
