@@ -7,8 +7,9 @@ export const denunciaService = {
     return response.data;
   },
 
-  listarMinhasDenuncias: async (page = 0, size = 10): Promise<PaginatedResponse<Denuncia>> => {
-    const response = await api.get(`/denuncias/minhas?page=${page}&size=${size}`);
+  listarMinhasDenuncias: async (params?: string): Promise<PaginatedResponse<Denuncia>> => {
+    const url = params ? `/denuncias/minhas?${params}` : '/denuncias/minhas';
+    const response = await api.get(url);
     return response.data;
   },
 

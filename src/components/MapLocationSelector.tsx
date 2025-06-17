@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
+import React, { useState, useCallback, useEffect } from 'react';
+import { APIProvider, Map, MapMouseEvent, Marker, useMapsLibrary } from '@vis.gl/react-google-maps';
 
 interface MapLocationSelectorProps {
   onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
@@ -13,58 +13,89 @@ const MapLocationSelector: React.FC<MapLocationSelectorProps> = ({
   apiKey
 }) => {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
-  const [address, setAddress] = useState('');
+  const [addressInput, setAddressInput] = useState('');
+  const [displayAddress, setDisplayAddress] = useState('');
+
+  const geocodingLibrary = useMapsLibrary('geocoding');
+  const [geocoder, setGeocoder] = useState<google.maps.Geocoder | null>(null);
+
+  useEffect(() => {
+    console.log('MapLocationSelector: useEffect - geocodingLibrary changed', geocodingLibrary);
+    if (geocodingLibrary) {
+      console.log('MapLocationSelector: Initializing Geocoder...');
+      setGeocoder(new geocodingLibrary.Geocoder());
+    }
+  }, [geocodingLibrary]);
 
   // Função para geocoding reverso (coordenadas para endereço)
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    console.log('MapLocationSelector: Reverse geocoding for:', lat, lng);
+    if (!geocoder) {
+      console.error('MapLocationSelector: Geocoder not initialized for reverse geocoding.');
+      return;
+    }
     try {
-      const geocoder = new google.maps.Geocoder();
       const response = await geocoder.geocode({
         location: { lat, lng }
       });
       
       if (response.results[0]) {
         const formattedAddress = response.results[0].formatted_address;
-        setAddress(formattedAddress);
+        setDisplayAddress(formattedAddress);
         onLocationSelect({ lat, lng, address: formattedAddress });
+        console.log('MapLocationSelector: Reverse geocoding successful:', formattedAddress);
+      } else {
+        console.warn('MapLocationSelector: No results found for reverse geocoding.');
       }
     } catch (error) {
-      console.error('Erro no geocoding reverso:', error);
+      console.error('MapLocationSelector: Erro no geocoding reverso:', error);
+      setDisplayAddress('Endereço não encontrado');
     }
-  }, [onLocationSelect]);
+  }, [geocoder, onLocationSelect]);
 
   // Função para geocoding (endereço para coordenadas)
-  const geocodeAddress = useCallback(async (address: string) => {
+  const geocodeAddress = useCallback(async (addr: string) => {
+    console.log('MapLocationSelector: Geocoding address:', addr);
+    if (!geocoder) {
+      console.error('MapLocationSelector: Geocoder not initialized for geocoding address.');
+      return;
+    }
     try {
-      const geocoder = new google.maps.Geocoder();
-      const response = await geocoder.geocode({ address });
+      const response = await geocoder.geocode({ address: addr });
       
       if (response.results[0]) {
         const location = response.results[0].geometry.location;
         const lat = location.lat();
         const lng = location.lng();
         setSelectedLocation({ lat, lng });
+        setDisplayAddress(response.results[0].formatted_address);
         onLocationSelect({ lat, lng, address: response.results[0].formatted_address });
+        console.log('MapLocationSelector: Geocoding successful:', response.results[0].formatted_address);
+      } else {
+        console.warn('MapLocationSelector: No results found for geocoding address:', addr);
+        setDisplayAddress('Endereço não encontrado');
       }
     } catch (error) {
-      console.error('Erro no geocoding:', error);
+      console.error('MapLocationSelector: Erro no geocoding:', error);
+      setDisplayAddress('Endereço não encontrado');
     }
-  }, [onLocationSelect]);
+  }, [geocoder, onLocationSelect]);
 
-  const handleMapClick = (event: { detail: { latLng: google.maps.LatLngLiteral | null } }) => {
+  const handleMapClick = useCallback((event: MapMouseEvent) => {
     const latLng = event.detail.latLng;
-    if (latLng) {
-      const lat = latLng.lat;
-      const lng = latLng.lng;
-      setSelectedLocation({ lat, lng });
-      reverseGeocode(lat, lng);
-    }
-  };
   
+    if (!latLng) return;
+  
+    const { lat, lng } = latLng;
+    setSelectedLocation({ lat, lng });
+    reverseGeocode(lat, lng);
+  }, [reverseGeocode]);
+
   const handleAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (address.trim()) {
-      geocodeAddress(address);
+    console.log('MapLocationSelector: Address search submitted:', addressInput);
+    if (addressInput.trim()) {
+      geocodeAddress(addressInput);
     }
   };
 
@@ -78,8 +109,8 @@ const MapLocationSelector: React.FC<MapLocationSelectorProps> = ({
           <input
             id="address-search"
             type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            value={addressInput}
+            onChange={(e) => setAddressInput(e.target.value)}
             placeholder="Digite o endereço..."
             className="flex-1 shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
           />
@@ -108,7 +139,7 @@ const MapLocationSelector: React.FC<MapLocationSelectorProps> = ({
 
       <div className="text-sm text-gray-600">
         <p><strong>Coordenadas:</strong> {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}</p>
-        {address && <p><strong>Endereço:</strong> {address}</p>}
+        {displayAddress && <p><strong>Endereço:</strong> {displayAddress}</p>}
         <p className="mt-2 text-xs text-gray-500">
           Clique no mapa para selecionar uma localização ou use a busca por endereço acima.
         </p>
@@ -118,4 +149,5 @@ const MapLocationSelector: React.FC<MapLocationSelectorProps> = ({
 };
 
 export default MapLocationSelector;
+
 
